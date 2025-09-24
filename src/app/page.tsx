@@ -1,6 +1,6 @@
 import { AppShell } from "@/components/app-shell";
 import CommitDetails from "@/components/commit-details";
-import CommitGraph from "@/components/commit-graph";
+import { CommitGraph } from "@/components/commit-graph";
 
 export default function Page() {
   return (

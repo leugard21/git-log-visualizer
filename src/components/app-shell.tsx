@@ -1,7 +1,7 @@
 "use client";
 
 import { Sidebar } from "./sidebar";
-import Toolbar from "./toolbar";
+import { Toolbar } from "./toolbar";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
