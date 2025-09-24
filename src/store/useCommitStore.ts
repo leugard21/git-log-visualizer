@@ -1,25 +1,25 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+"use client";
 
-import type { Commit, CommitFilters, UploadedLog } from "@/types/git";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import type { Commit, CommitFilters, UploadedLog } from "@/types/git";
 
 type CommitState = {
   commits: Commit[];
-  byHash: Map<string, Commit>;
-  selectedHash: string | null;
-  filters: CommitFilters;
-
   uploaded: UploadedLog | null;
+
+  filters: CommitFilters;
+  selected: Commit | null;
 
   setCommits: (commits: Commit[]) => void;
   clearCommits: () => void;
+
   setFilters: (updater: Partial<CommitFilters> | ((f: CommitFilters) => CommitFilters)) => void;
-  selectCommit: (hash: string | null) => void;
+
+  selectCommit: (commit: Commit | null) => void;
 
   setUploaded: (u: UploadedLog | null) => void;
-
-  getSelected: () => Commit | null;
 };
 
 const initialFilters: CommitFilters = {
@@ -34,19 +34,13 @@ export const useCommitStore = create<CommitState>()(
   persist(
     (set, get) => ({
       commits: [],
-      byHash: new Map(),
-      selectedHash: null,
-      filters: initialFilters,
-
       uploaded: null,
 
-      setCommits: (commits) => {
-        const byHash = new Map<string, Commit>();
-        for (const c of commits) byHash.set(c.hash, c);
-        set({ commits, byHash, selectedHash: null });
-      },
+      filters: initialFilters,
+      selected: null,
 
-      clearCommits: () => set({ commits: [], byHash: new Map(), selectedHash: null }),
+      setCommits: (commits) => set({ commits, selected: null }),
+      clearCommits: () => set({ commits: [], selected: null }),
 
       setFilters: (updater) => {
         const current = get().filters;
@@ -55,15 +49,9 @@ export const useCommitStore = create<CommitState>()(
         set({ filters: next });
       },
 
-      selectCommit: (hash) => set({ selectedHash: hash }),
+      selectCommit: (commit) => set({ selected: commit }),
 
       setUploaded: (u) => set({ uploaded: u }),
-
-      getSelected: () => {
-        const { selectedHash, byHash } = get();
-        if (!selectedHash) return null;
-        return byHash.get(selectedHash) ?? null;
-      },
     }),
     {
       name: "glv:commit-store:v1",
