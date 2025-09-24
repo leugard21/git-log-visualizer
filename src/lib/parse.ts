@@ -8,16 +8,21 @@ type RawCommit = Partial<Commit> & {
   authorDate?: string;
 };
 
+function isString(x: unknown): x is string {
+  return typeof x === "string";
+}
+
 function normalizeCommit(raw: RawCommit): Commit | null {
   if (!raw || !raw.hash || !raw.authorName || !raw.authorDate || !raw.message) return null;
 
-  const parents = Array.isArray(raw.parents)
-    ? raw.parents
-    : typeof raw.parents === "string"
-      ? raw.parents.trim() === ""
-        ? []
-        : raw.parents.trim().split(/\s_+/)
-      : [];
+  let parents: string[] = [];
+
+  if (Array.isArray(raw.parents)) {
+    parents = raw.parents.map(String);
+  } else if (isString(raw.parents)) {
+    const trimmed = raw.parents.trim();
+    parents = trimmed ? trimmed.split(/\s+/) : [];
+  }
 
   let iso = raw.authorDate!;
   try {
