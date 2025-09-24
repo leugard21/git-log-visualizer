@@ -1,5 +1,6 @@
 "use client";
 
+import { CommitDetails } from "./commit-details";
 import { Sidebar } from "./sidebar";
 import { Toolbar } from "./toolbar";
 
@@ -18,7 +19,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <main className="overflow-hidden">{children}</main>
 
-        <aside className="border-l overflow-y-auto"></aside>
+        <aside className="border-l overflow-y-auto">
+          <CommitDetails />
+        </aside>
       </div>
     </div>
   );
