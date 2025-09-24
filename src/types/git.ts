@@ -20,3 +20,11 @@ export type CommitFilters = {
   dateTo: string | null;
   query?: string;
 };
+
+export type UploadedLog = {
+  name: string;
+  size: number;
+  type: string;
+  text: string;
+  lineCount: number;
+};

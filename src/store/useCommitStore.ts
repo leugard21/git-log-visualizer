@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-"use client";
 
-import type { Commit, CommitFilters } from "@/types/git";
+import type { Commit, CommitFilters, UploadedLog } from "@/types/git";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
@@ -9,13 +8,16 @@ type CommitState = {
   commits: Commit[];
   byHash: Map<string, Commit>;
   selectedHash: string | null;
-
   filters: CommitFilters;
+
+  uploaded: UploadedLog | null;
 
   setCommits: (commits: Commit[]) => void;
   clearCommits: () => void;
   setFilters: (updater: Partial<CommitFilters> | ((f: CommitFilters) => CommitFilters)) => void;
   selectCommit: (hash: string | null) => void;
+
+  setUploaded: (u: UploadedLog | null) => void;
 
   getSelected: () => Commit | null;
 };
@@ -36,6 +38,8 @@ export const useCommitStore = create<CommitState>()(
       selectedHash: null,
       filters: initialFilters,
 
+      uploaded: null,
+
       setCommits: (commits) => {
         const byHash = new Map<string, Commit>();
         for (const c of commits) byHash.set(c.hash, c);
@@ -52,6 +56,8 @@ export const useCommitStore = create<CommitState>()(
       },
 
       selectCommit: (hash) => set({ selectedHash: hash }),
+
+      setUploaded: (u) => set({ uploaded: u }),
 
       getSelected: () => {
         const { selectedHash, byHash } = get();
