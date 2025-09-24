@@ -1,13 +1,15 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Input } from "./ui/input";
 import { useCommitStore } from "@/store/useCommitStore";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { formatBytes } from "@/lib/bytes";
 import { UploadCloud, X } from "lucide-react";
 import { Button } from "./ui/button";
+import { parseGitLog } from "@/lib/parse";
 
 const ACCEPT_TYPES = ["application/json", "text/plain"];
 
@@ -17,8 +19,12 @@ const MAX_SIZE_BYTES = 50 * 1024 * 1024;
 export default function UploadPanel() {
   const uploaded = useCommitStore((s) => s.uploaded);
   const setUploaded = useCommitStore((s) => s.setUploaded);
+  const setCommits = useCommitStore((s) => s.setCommits);
+  const commits = useCommitStore((s) => s.commits);
 
   const [dragActive, setDragActive] = useState(false);
+
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   const onFile = useCallback(
     async (file: File) => {
@@ -77,6 +83,32 @@ export default function UploadPanel() {
     if (e.type === "dragleave") setDragActive(false);
   };
 
+  const openPicker = () => {
+    inputRef.current?.click();
+  };
+
+  const parseNow = () => {
+    if (!uploaded) {
+      toast.error("No file loaded.");
+      return;
+    }
+    try {
+      const { commits: parsed, warnings } = parseGitLog(uploaded.text);
+      setCommits(parsed);
+      const uniqueAuthors = new Set(parsed.map((c) => c.authorEmail || c.authorName)).size;
+      toast.success(
+        `Parsed ${parsed.length} commits • ${uniqueAuthors} author${uniqueAuthors === 1 ? "" : "s"}`
+      );
+      if (warnings.length) {
+        toast.message(
+          `Warnings: ${warnings.slice(0, 3).join(" | ")}${warnings.length > 3 ? " …" : ""}`
+        );
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to parse file");
+    }
+  };
+
   const clear = () => setUploaded(null);
   return (
     <Card>
@@ -99,15 +131,18 @@ export default function UploadPanel() {
             Drag & Drop your <span className="font-medium">JSON/NDJSON</span> here
           </p>
           <p className="text-xs text-muted-foreground mt-2">or</p>
-          <div className="mt-2">
+          <div className="mt-2 items-center gap-2">
             <label className="inline-block">
-              <Input
+              <input
+                ref={inputRef}
                 type="file"
                 accept={ACCEPT_EXTS.join(",")}
-                className="hidden"
                 onChange={handleInput}
+                className="sr-only"
+                aria-label="Upload Git log file"
+                tabIndex={-1}
               />
-              <Button size="sm" variant="default">
+              <Button size="sm" variant="default" onClick={openPicker}>
                 Choose file
               </Button>
             </label>
@@ -115,6 +150,15 @@ export default function UploadPanel() {
           <p className="mt-2 text-[11px] text-muted-foreground">
             Max {formatBytes(MAX_SIZE_BYTES)}. Accepts .json, .ndjson, .txt
           </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Button size="sm" onClick={parseNow} disabled={!uploaded}>
+            Parse file
+          </Button>
+          <span className="text-xs text-muted-foreground">
+            {commits.length > 0 ? `Loaded ${commits.length} commits` : "No commits loaded"}
+          </span>
         </div>
 
         {uploaded ? (
