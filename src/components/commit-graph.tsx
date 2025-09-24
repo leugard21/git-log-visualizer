@@ -4,13 +4,12 @@
 import { useEffect, useMemo, useRef } from "react";
 import * as d3 from "d3";
 import { useCommitStore } from "@/store/useCommitStore";
-import { useGraphStore } from "@/store/useGraphStore"; // used to wire Toolbar zoom buttons (Step 9)
+import { useGraphStore } from "@/store/useGraphStore";
+import { colorForBranch } from "@/lib/colors";
 
-// Layout constants (will evolve once we add real branch lanes)
 const ROW_HEIGHT = 50;
 const COL_X = 200;
 
-// Simple word-wrap for SVG <text> using <tspan>s
 function wrapText(text: string, charPerLine = 50): string[] {
   const words = text.split(" ");
   const lines: string[] = [];
@@ -38,7 +37,6 @@ export function CommitGraph() {
 
   const setZoomFns = useGraphStore((s) => s.setZoomFns);
 
-  // Compute node positions (newest first order already enforced by parser; using array index here)
   const nodes = useMemo(() => {
     return commits.map((c, i) => ({
       ...c,
@@ -47,7 +45,6 @@ export function CommitGraph() {
     }));
   }, [commits]);
 
-  // Map parent links (source → this commit, target → parent commit)
   const links = useMemo(() => {
     const byHash = new Map(nodes.map((n) => [n.hash, n]));
     const out: { source: (typeof nodes)[number]; target: (typeof nodes)[number] }[] = [];
@@ -60,7 +57,6 @@ export function CommitGraph() {
     return out;
   }, [nodes]);
 
-  // D3 zoom/pan setup and expose controls to the Toolbar via useGraphStore
   useEffect(() => {
     if (!svgRef.current || !gRef.current) return;
 
@@ -96,7 +92,6 @@ export function CommitGraph() {
     <div className="relative h-full w-full">
       <svg ref={svgRef} className="h-full w-full bg-background">
         <g ref={gRef}>
-          {/* Optional faint grid */}
           {Array.from({ length: 30 }).map((_, i) => (
             <line
               key={`v${i}`}
@@ -120,23 +115,25 @@ export function CommitGraph() {
             />
           ))}
 
-          {/* Parent links */}
-          {links.map((l, i) => (
-            <line
-              key={i}
-              x1={l.source.x}
-              y1={l.source.y}
-              x2={l.target.x}
-              y2={l.target.y}
-              stroke="currentColor"
-              strokeWidth={1.5}
-              strokeOpacity={0.35}
-            />
-          ))}
+          {links.map((l, i) => {
+            const stroke = colorForBranch(l.source.branch || l.target.branch);
+            return (
+              <line
+                key={i}
+                x1={l.source.x}
+                y1={l.source.y}
+                x2={l.target.x}
+                y2={l.target.y}
+                stroke={stroke}
+                strokeWidth={1.5}
+                strokeOpacity={0.55}
+              />
+            );
+          })}
 
-          {/* Commit nodes */}
           {nodes.map((n) => {
             const isSelected = selected?.hash === n.hash;
+            const fill = colorForBranch(n.branch);
             return (
               <g
                 key={n.hash}
@@ -146,17 +143,16 @@ export function CommitGraph() {
               >
                 <circle
                   r={isSelected ? 10 : 8}
-                  className={
-                    isSelected ? "fill-primary stroke-ring stroke-2" : "fill-primary stroke-border"
-                  }
+                  style={{ fill }}
+                  className={isSelected ? "stroke-ring stroke-2" : "stroke-border"}
                 >
                   <title>
                     {n.hash.slice(0, 7)} — {n.message}
                     {"\n"}by {n.authorName} on {new Date(n.authorDate).toLocaleString()}
+                    {n.branch ? `\nbranch: ${n.branch}` : ""}
                   </title>
                 </circle>
-
-                {/* Wrapped commit message to the right of the node */}
+                {/* Wrapped text unchanged */}
                 <text x={16} y={4} className="text-xs fill-foreground select-none">
                   {wrapText(n.message, 50).map((line, i) => (
                     <tspan key={i} x={16} dy={i === 0 ? 0 : 14}>
